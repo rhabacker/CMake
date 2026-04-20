@@ -62,6 +62,7 @@ private:
   bool PackageFilesImpl();
   bool PackageWithWix();
   bool PackageWithWix3();
+  bool PackageWithWixl();
 
   void CreateWiXVariablesIncludeFile();
 
@@ -176,6 +177,7 @@ private:
   std::unique_ptr<cmWIXPatch> Patch;
 
   unsigned long WixVersion = 3;
+  bool UseWixl = false;
 
   cmWIXSourceWriter::GuidType ComponentGuidType;
 };
