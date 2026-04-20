@@ -93,6 +93,12 @@ Packaging is performed using the following tools:
 CPack invokes both tools as needed.  Intermediate ``.wixobj`` files
 are considered implementation details.
 
+On UNIX platforms, if ``candle`` or ``light`` are not available, CPack falls
+back to ``wixl`` (from ``msitools``) when it is found in ``PATH``.
+In that mode, CPack invokes ``wixl`` directly on generated ``.wxs`` sources.
+Additional flags may be provided through
+:variable:`CPACK_WIX_WIXL_EXTRA_FLAGS <CPACK_WIX_<TOOL>_EXTRA_FLAGS>`.
+
 WiX extensions must be named with the form ``Wix<Name>Extension``.
 
 CPack expects the above tools to be available for command-line
@@ -329,7 +335,8 @@ The following variables are specific to the installers built using WiX.
 .. variable:: CPACK_WIX_<TOOL>_EXTRA_FLAGS
 
  Specify a list of additional command-line flags for a specific WiX tool.
- See `WiX Toolsets`_ for possible ``<TOOL>`` names.
+ See `WiX Toolsets`_ for possible ``<TOOL>`` names (``BUILD``, ``CANDLE``,
+ ``LIGHT``, or ``WIXL``).
 
  Use it at your own risk.
  Future versions of CPack may generate flags which may be in conflict
