@@ -2,8 +2,6 @@
    file LICENSE.rst or https://cmake.org/licensing for details.  */
 #include "cmWIXSourceWriter.h"
 
-#include <windows.h>
-
 #include "cmCPackGenerator.h"
 #include "cmCryptoHash.h"
 #include "cmUuid.h"

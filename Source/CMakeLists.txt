@@ -1323,7 +1323,11 @@ if(CYGWIN)
   find_package(LibUUID)
 endif()
 
-if(WIN32 OR (CYGWIN AND TARGET LibUUID::LibUUID))
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  find_package(LibUUID)
+endif()
+
+if(WIN32 OR ((CYGWIN OR CMAKE_SYSTEM_NAME STREQUAL "Linux") AND TARGET LibUUID::LibUUID))
   set(ENABLE_BUILD_WIX_GENERATOR 1)
   target_sources(
     CPackLib

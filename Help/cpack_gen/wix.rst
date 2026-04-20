@@ -102,8 +102,7 @@ CPack looks for the tools in ``%WIX%`` and ``%WIX%\bin``.
 Variables specific to CPack WIX generator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following variables are specific to the installers built on
-Windows using WiX.
+The following variables are specific to the installers built using WiX.
 
 .. variable:: CPACK_WIX_VERSION
 
