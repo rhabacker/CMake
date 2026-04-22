@@ -764,6 +764,7 @@ if(NOT CPACK_GENERATOR)
       option(CPACK_BINARY_TBZ2 "Enable to build TBZ2 packages"    OFF)
       option(CPACK_BINARY_TGZ  "Enable to build TGZ packages"     ON)
       option(CPACK_BINARY_TXZ  "Enable to build TXZ packages"     OFF)
+      option(CPACK_BINARY_WIX  "Enable to build WiX packages"     OFF)
       mark_as_advanced(
         CPACK_BINARY_DEB
         CPACK_BINARY_FREEBSD
@@ -773,6 +774,7 @@ if(NOT CPACK_GENERATOR)
         CPACK_BINARY_TBZ2
         CPACK_BINARY_TGZ
         CPACK_BINARY_TXZ
+        CPACK_BINARY_WIX
         )
     endif()
   else()
