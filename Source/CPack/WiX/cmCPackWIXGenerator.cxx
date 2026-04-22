@@ -326,9 +326,19 @@ bool cmCPackWIXGenerator::PackageWithWix()
   }
 
   std::ostringstream command;
+#ifdef _WIN32
+  auto const toWixToolPath = [](std::string const& path) {
+    return CMakeToWixPath(path);
+  };
+#else
+  auto const& toWixToolPath = [](std::string const& path) -> std::string const& {
+    return path;
+  };
+#endif
+
   command << QuotePath(wixExecutable) << " build"
           << " -arch " << arch << " -out "
-          << QuotePath(CMakeToWixPath(packageFileNames.at(0)));
+          << QuotePath(toWixToolPath(packageFileNames.at(0)));
 
   for (std::string const& ext : this->WixExtensions) {
     command << " -ext " << QuotePath(ext);
@@ -343,7 +353,7 @@ bool cmCPackWIXGenerator::PackageWithWix()
 
   bool includeCPackTopLevel = false;
   for (std::string const& sourceFilename : this->WixSources) {
-    command << " -src " << QuotePath(CMakeToWixPath(sourceFilename));
+    command << " -src " << QuotePath(toWixToolPath(sourceFilename));
     includeCPackTopLevel |= !cmHasPrefix(sourceFilename, this->CPackTopLevel);
   }
   if (includeCPackTopLevel) {
