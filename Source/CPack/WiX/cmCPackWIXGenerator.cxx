@@ -181,6 +181,8 @@ bool cmCPackWIXGenerator::InitializeWiXConfiguration()
                   "Error while executing CPackWIX.cmake" << std::endl);
     return false;
   }
+  this->UseWixl =
+    this->WixVersion < 4 && this->GetOption("CPACK_WIX_WIXL_EXECUTABLE");
 
   if (!GetOption("CPACK_WIX_PRODUCT_GUID")) {
     std::string guid = GenerateGUID();
@@ -296,8 +298,13 @@ bool cmCPackWIXGenerator::PackageFilesImpl()
 
   AppendUserSuppliedExtraSources();
 
-  return this->WixVersion >= 4 ? this->PackageWithWix()
-                               : this->PackageWithWix3();
+  if (this->WixVersion >= 4) {
+    return this->PackageWithWix();
+  }
+  if (this->UseWixl) {
+    return this->PackageWithWixl();
+  }
+  return this->PackageWithWix3();
 }
 
 bool cmCPackWIXGenerator::PackageWithWix()
@@ -319,9 +326,19 @@ bool cmCPackWIXGenerator::PackageWithWix()
   }
 
   std::ostringstream command;
+#ifdef _WIN32
+  auto const toWixToolPath = [](std::string const& path) {
+    return CMakeToWixPath(path);
+  };
+#else
+  auto const& toWixToolPath = [](std::string const& path) -> std::string const& {
+    return path;
+  };
+#endif
+
   command << QuotePath(wixExecutable) << " build"
           << " -arch " << arch << " -out "
-          << QuotePath(CMakeToWixPath(packageFileNames.at(0)));
+          << QuotePath(toWixToolPath(packageFileNames.at(0)));
 
   for (std::string const& ext : this->WixExtensions) {
     command << " -ext " << QuotePath(ext);
@@ -336,7 +353,7 @@ bool cmCPackWIXGenerator::PackageWithWix()
 
   bool includeCPackTopLevel = false;
   for (std::string const& sourceFilename : this->WixSources) {
-    command << " -src " << QuotePath(CMakeToWixPath(sourceFilename));
+    command << " -src " << QuotePath(toWixToolPath(sourceFilename));
     includeCPackTopLevel |= !cmHasPrefix(sourceFilename, this->CPackTopLevel);
   }
   if (includeCPackTopLevel) {
@@ -380,6 +397,34 @@ bool cmCPackWIXGenerator::PackageWithWix3()
   AppendUserSuppliedExtraObjects(objectFiles);
 
   return RunLightCommand(objectFiles.str());
+}
+
+bool cmCPackWIXGenerator::PackageWithWixl()
+{
+  std::string wixlExecutable;
+  if (!RequireOption("CPACK_WIX_WIXL_EXECUTABLE", wixlExecutable)) {
+    return false;
+  }
+
+  std::string arch;
+  if (cmValue archOpt = GetOption("CPACK_WIX_ARCHITECTURE")) {
+    arch = *archOpt;
+  } else {
+    arch = GetArchitecture();
+  }
+
+  std::ostringstream command;
+  command << QuotePath(wixlExecutable) << " -a " << arch << " -o "
+          << QuotePath(packageFileNames.at(0));
+
+  for (std::string const& sourceFilename : this->WixSources) {
+    command << ' ' << QuotePath(sourceFilename);
+  }
+  command << " -I " << QuotePath(this->CPackTopLevel);
+
+  AddCustomFlags("CPACK_WIX_WIXL_EXTRA_FLAGS", command);
+
+  return RunWiXCommand(command.str());
 }
 
 void cmCPackWIXGenerator::AppendUserSuppliedExtraSources()
