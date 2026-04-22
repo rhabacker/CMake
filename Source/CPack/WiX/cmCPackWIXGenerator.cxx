@@ -417,10 +417,14 @@ bool cmCPackWIXGenerator::PackageWithWixl()
   command << QuotePath(wixlExecutable) << " -a " << arch << " -o "
           << QuotePath(packageFileNames.at(0));
 
+  bool includeCPackTopLevel = false;
   for (std::string const& sourceFilename : this->WixSources) {
     command << ' ' << QuotePath(sourceFilename);
+    includeCPackTopLevel |= !cmHasPrefix(sourceFilename, this->CPackTopLevel);
   }
-  command << " -I " << QuotePath(this->CPackTopLevel);
+  if (includeCPackTopLevel) {
+    command << " -I " << QuotePath(this->CPackTopLevel);
+  }
 
   AddCustomFlags("CPACK_WIX_WIXL_EXTRA_FLAGS", command);
 
