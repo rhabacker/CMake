@@ -818,6 +818,16 @@ if(NOT CPACK_GENERATOR)
 
 endif()
 
+# Keep binary generator option variables synchronized with explicit
+# CPACK_GENERATOR selections.
+set(CPACK_BINARY_WIX OFF)
+foreach(cpack_generator IN LISTS CPACK_GENERATOR)
+  if(cpack_generator STREQUAL "WIX")
+    set(CPACK_BINARY_WIX ON)
+    break()
+  endif()
+endforeach()
+
 # Provide options to choose source generators
 if(NOT CPACK_SOURCE_GENERATOR)
   if(UNIX)
