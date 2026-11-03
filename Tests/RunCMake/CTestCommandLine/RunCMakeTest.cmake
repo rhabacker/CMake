@@ -1444,13 +1444,13 @@ set_tests_properties(index_only_test PROPERTIES ON_DEMAND I)
 ")
   set(RunCMake_TEST_NOT_EXPECT_stdout "regex_only_test")
   run_cmake_command(OnDemandProperty-UnionIndexRegexOnly
-    ${CMAKE_CTEST_COMMAND} --union -I 2,2 --no-tests=ignore)
+    ${CMAKE_CTEST_COMMAND} -U -I 2,2 --no-tests=ignore)
   unset(RunCMake_TEST_NOT_EXPECT_stdout)
 
   set(RunCMake_TEST_EXPECT_stdout "index_only_test")
   set(RunCMake_TEST_NOT_EXPECT_stdout "regex_only_test")
   run_cmake_command(OnDemandProperty-UnionIndexIndexOnly
-    ${CMAKE_CTEST_COMMAND} --union -I 3,3)
+    ${CMAKE_CTEST_COMMAND} -U -I 3,3)
   unset(RunCMake_TEST_EXPECT_stdout)
   unset(RunCMake_TEST_NOT_EXPECT_stdout)
 endblock()
