@@ -1476,3 +1476,47 @@ set_tests_properties(reassigned_test PROPERTIES ON_DEMAND L)
     ${CMAKE_CTEST_COMMAND} -L assigned)
   unset(RunCMake_TEST_EXPECT_stdout)
 endblock()
+
+# A selected test still brings in its required fixture setup and cleanup
+# tests, even when those fixture tests have ON_DEMAND selectors that are not
+# activated by the command line.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-Fixtures)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(fixture_setup \"${CMAKE_COMMAND}\" -E echo fixture_setup)
+set_tests_properties(fixture_setup PROPERTIES FIXTURES_SETUP sample_fixture ON_DEMAND L)
+add_test(fixture_test \"${CMAKE_COMMAND}\" -E echo fixture_test)
+set_tests_properties(fixture_test PROPERTIES FIXTURES_REQUIRED sample_fixture)
+add_test(fixture_cleanup \"${CMAKE_COMMAND}\" -E echo fixture_cleanup)
+set_tests_properties(fixture_cleanup PROPERTIES FIXTURES_CLEANUP sample_fixture ON_DEMAND L)
+")
+  set(RunCMake_TEST_EXPECT_stdout
+    "fixture_setup(.|\\n)*fixture_test(.|\\n)*fixture_cleanup")
+  run_cmake_command(OnDemandProperty-Fixtures
+    ${CMAKE_CTEST_COMMAND} -R "^fixture_test$")
+  unset(RunCMake_TEST_EXPECT_stdout)
+endblock()
+
+# --rerun-failed is an explicit request to rerun previously failed tests and
+# must not be blocked by ON_DEMAND.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-RerunFailed)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(rerun_on_demand_test \"${CMAKE_COMMAND}\" -E false)
+set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND R)
+")
+  set(RunCMake_TEST_EXPECT_RESULT 8)
+  set(RunCMake_TEST_EXPECT_stdout "rerun_on_demand_test")
+  run_cmake_command(OnDemandProperty-RerunInitial
+    ${CMAKE_CTEST_COMMAND} -R rerun_on_demand_test)
+  run_cmake_command(OnDemandProperty-RerunFailed
+    ${CMAKE_CTEST_COMMAND} --rerun-failed)
+  unset(RunCMake_TEST_EXPECT_RESULT)
+  unset(RunCMake_TEST_EXPECT_stdout)
+endblock()
