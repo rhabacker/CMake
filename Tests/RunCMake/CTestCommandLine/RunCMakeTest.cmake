@@ -1494,7 +1494,7 @@ add_test(fixture_cleanup \"${CMAKE_COMMAND}\" -E echo fixture_cleanup)
 set_tests_properties(fixture_cleanup PROPERTIES FIXTURES_CLEANUP sample_fixture ON_DEMAND L)
 ")
   set(RunCMake_TEST_EXPECT_stdout
-    "fixture_setup(.|\n)*fixture_test(.|\\n)*fixture_cleanup")
+    "fixture_setup(.|\\n)*fixture_test(.|\\n)*fixture_cleanup")
   run_cmake_command(OnDemandProperty-Fixtures
     ${CMAKE_CTEST_COMMAND} -R "^fixture_test$")
   unset(RunCMake_TEST_EXPECT_stdout)
@@ -1520,7 +1520,7 @@ set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND R)
   # Change the allowed selector after recording the failed test.  The
   # --rerun-failed option must still select it.
   file(APPEND "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake"
-    "set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND L)\\n")
+    "set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND L)\n")
   run_cmake_command(OnDemandProperty-RerunFailed
     ${CMAKE_CTEST_COMMAND} --rerun-failed)
   unset(RunCMake_TEST_EXPECT_RESULT)
