@@ -1494,7 +1494,7 @@ add_test(fixture_cleanup \"${CMAKE_COMMAND}\" -E echo fixture_cleanup)
 set_tests_properties(fixture_cleanup PROPERTIES FIXTURES_CLEANUP sample_fixture ON_DEMAND L)
 ")
   set(RunCMake_TEST_EXPECT_stdout
-    "fixture_setup(.|\\n)*fixture_test(.|\\n)*fixture_cleanup")
+    "fixture_setup(.|\n)*fixture_test(.|\\n)*fixture_cleanup")
   run_cmake_command(OnDemandProperty-Fixtures
     ${CMAKE_CTEST_COMMAND} -R "^fixture_test$")
   unset(RunCMake_TEST_EXPECT_stdout)
