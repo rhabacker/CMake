@@ -196,6 +196,7 @@ public:
     std::string WillFailRaw;
     bool Disabled = false;
     std::string DisabledRaw;
+    std::vector<std::string> OnDemand;
     float Cost = 0;
     std::string CostRaw;
     int PreviousRuns = 0;

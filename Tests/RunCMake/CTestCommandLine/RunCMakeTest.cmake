@@ -1402,3 +1402,27 @@ block()
   run_cmake_command(SetOutputDirConfigured-ctest
     ${CMAKE_CTEST_COMMAND} -C Debug --output-dir ${OUTPUT_DIR})
 endblock()
+
+# ON_DEMAND test property: run only when selected by an allowed option
+function(run_on_demand_property_test name)
+  set(RunCMake_TEST_BINARY_DIR "${RunCMake_BINARY_DIR}/OnDemandProperty")
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(auto_test   \"${CMAKE_COMMAND}\" -E true)
+add_test(manual_test \"${CMAKE_COMMAND}\" -E true)
+add_test(regex_only_test \"${CMAKE_COMMAND}\" -E true)
+set_tests_properties(manual_test PROPERTIES ON_DEMAND \"R;L;I\" LABELS manual)
+set_tests_properties(regex_only_test PROPERTIES ON_DEMAND \"R\" LABELS manual)
+")
+  set(RunCMake_TEST_NO_CLEAN 1)
+  run_cmake_command(OnDemandProperty-${name} ${CMAKE_CTEST_COMMAND} ${ARGN})
+endfunction()
+run_on_demand_property_test(Default)                       # plain ctest
+run_on_demand_property_test(Regex      -R manual_test)     # explicit -R
+run_on_demand_property_test(RegexAll   -R _test)           # -R matching all tests
+run_on_demand_property_test(Exclude    --no-tests=ignore -E auto_test)
+run_on_demand_property_test(RegexExcl  --no-tests=ignore -R manual_test -E manual_test)
+run_on_demand_property_test(Label --no-tests=ignore -L manual)
+run_on_demand_property_test(Index --no-tests=ignore -I 2,2)   # select manual_test by index
+run_on_demand_property_test(Index1 -I 1,1)                    # auto_test only
