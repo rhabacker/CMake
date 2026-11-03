@@ -2424,6 +2424,7 @@ bool cmCTestTestHandler::SetTestsProperties(
             rt.Disabled = cmIsOn(val);
           } else if (key == "ON_DEMAND"_s) {
             rt.RawProperties[key] = val;
+            rt.OnDemand.clear();
             cmExpandList(val, rt.OnDemand);
           } else if (key == "ATTACHED_FILES"_s) {
             AppendRawProperty(rt.RawProperties[key], val);
