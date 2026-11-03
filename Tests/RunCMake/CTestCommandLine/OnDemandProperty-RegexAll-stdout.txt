@@ -1,0 +1,6 @@
+Test +#1: auto_test \.+ +Passed +[0-9\.]+ sec
+ +Start 2: manual_test
+.*Test +#2: manual_test \.+ +Passed +[0-9\.]+ sec
+.*Test +#3: regex_only_test \.+ +Passed +[0-9\.]+ sec
++
+100% tests passed out of 3

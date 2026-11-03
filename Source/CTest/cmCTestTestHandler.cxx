@@ -959,6 +959,15 @@ bool cmCTestTestHandler::ComputeTestList()
   int inREcnt = 0;
   for (cmCTestTestProperties& tp : this->TestList) {
     this->CheckLabelFilter(tp);
+    bool const onDemandSelected =
+      (this->UseIncludeRegExpFlag && cm::contains(tp.OnDemand, "R")) ||
+      (!this->IncludeLabelRegularExpressions.empty() &&
+       cm::contains(tp.OnDemand, "L")) ||
+      (!this->TestOptions.TestsToRunInformation.empty() &&
+       cm::contains(tp.OnDemand, "I"));
+    if (!tp.OnDemand.empty() && !onDemandSelected) {
+      tp.IsInBasedOnREOptions = false;
+    }
     if (tp.IsInBasedOnREOptions) {
       inREcnt++;
     }
@@ -977,6 +986,14 @@ bool cmCTestTestHandler::ComputeTestList()
     cnt++;
     if (tp.IsInBasedOnREOptions) {
       inREcnt++;
+    }
+    if (!tp.OnDemand.empty() &&
+        !((this->UseIncludeRegExpFlag && cm::contains(tp.OnDemand, "R")) ||
+          (!this->IncludeLabelRegularExpressions.empty() &&
+           cm::contains(tp.OnDemand, "L")) ||
+          (!this->TestOptions.TestsToRunInformation.empty() &&
+           cm::contains(tp.OnDemand, "I")))) {
+      continue;
     }
 
     if (this->TestOptions.UseUnion) {
@@ -2405,6 +2422,20 @@ bool cmCTestTestHandler::SetTestsProperties(
           } else if (key == "DISABLED"_s) {
             rt.RawProperties[key] = val;
             rt.Disabled = cmIsOn(val);
+          } else if (key == "ON_DEMAND"_s) {
+            rt.RawProperties[key] = val;
+            rt.OnDemand.clear();
+            cmExpandList(val, rt.OnDemand);
+            for (std::string const& selector : rt.OnDemand) {
+              if (selector != "R"_s && selector != "L"_s &&
+                  selector != "I"_s) {
+                rt.AppendError(cmStrCat(
+                  "ON_DEMAND selector \"", selector,
+                  "\" is not valid. Must be R, L, or I."));
+                rt.OnDemand.clear();
+                break;
+              }
+            }
           } else if (key == "ATTACHED_FILES"_s) {
             AppendRawProperty(rt.RawProperties[key], val);
             cmExpandList(val, rt.AttachedFiles);

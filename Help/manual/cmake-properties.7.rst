@@ -641,6 +641,7 @@ Properties on Tests
    /prop_test/GENERATED_RESOURCE_SPEC_FILE
    /prop_test/LABELS
    /prop_test/MEASUREMENT
+   /prop_test/ON_DEMAND
    /prop_test/PASS_REGULAR_EXPRESSION
    /prop_test/PROCESSOR_AFFINITY
    /prop_test/PROCESSORS

@@ -1,0 +1,6 @@
+if(NOT actual_stdout MATCHES "manual_test")
+  set(RunCMake_TEST_FAILED "manual_test was not selected via -L")
+endif()
+if(actual_stdout MATCHES "auto_test" OR actual_stdout MATCHES "regex_only_test")
+  set(RunCMake_TEST_FAILED "a test not enabled by -L ran")
+endif()

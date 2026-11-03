@@ -1402,3 +1402,221 @@ block()
   run_cmake_command(SetOutputDirConfigured-ctest
     ${CMAKE_CTEST_COMMAND} -C Debug --output-dir ${OUTPUT_DIR})
 endblock()
+
+# ON_DEMAND test property: run only when selected by an allowed option
+function(run_on_demand_property_test name)
+  set(RunCMake_TEST_BINARY_DIR "${RunCMake_BINARY_DIR}/OnDemandProperty")
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(auto_test   \"${CMAKE_COMMAND}\" -E true)
+add_test(manual_test \"${CMAKE_COMMAND}\" -E true)
+add_test(regex_only_test \"${CMAKE_COMMAND}\" -E true)
+set_tests_properties(manual_test PROPERTIES ON_DEMAND \"R;L;I\" LABELS manual)
+set_tests_properties(regex_only_test PROPERTIES ON_DEMAND \"R\" LABELS manual)
+")
+  set(RunCMake_TEST_NO_CLEAN 1)
+  run_cmake_command(OnDemandProperty-${name} ${CMAKE_CTEST_COMMAND} ${ARGN})
+endfunction()
+set(RunCMake_TEST_EXPECT_stdout "auto_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(Default -V)                       # plain ctest
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "manual_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "auto_test|regex_only_test")
+run_on_demand_property_test(Regex -V -R manual_test)          # explicit -R
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "auto_test|manual_test|regex_only_test")
+run_on_demand_property_test(RegexAll -V -R _test)             # -R matching all tests
+unset(RunCMake_TEST_EXPECT_stdout)
+
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(Exclude -V --no-tests=ignore -E auto_test)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(RegexExcl -V --no-tests=ignore -R manual_test -E manual_test)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "manual_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "auto_test|regex_only_test")
+run_on_demand_property_test(Label -V --no-tests=ignore -L manual)
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "manual_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "auto_test|regex_only_test")
+run_on_demand_property_test(Index -V --no-tests=ignore -I 2,2) # select manual_test by index
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "auto_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(Index1 -V -I 1,1)                  # auto_test only
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+# Exclusion by label does not activate ON_DEMAND L, but still filters tests
+# selected by another inclusion option.
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(LabelExcludeOnly -V --no-tests=ignore -LE other)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test")
+run_on_demand_property_test(RegexLabelExclude -V --no-tests=ignore -R manual_test -LE manual)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+# -N lists selected tests without executing them.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-ShowOnly)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  set(marker "${RunCMake_TEST_BINARY_DIR}/executed")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(show_only_test \"${CMAKE_COMMAND}\" -E touch \"${marker}\")
+set_tests_properties(show_only_test PROPERTIES ON_DEMAND R)
+")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "show_only_test")
+  run_cmake_command(OnDemandProperty-ShowOnlyDefault
+    ${CMAKE_CTEST_COMMAND} -N)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+  set(RunCMake_TEST_EXPECT_stdout "show_only_test")
+  run_cmake_command(OnDemandProperty-ShowOnlySelected
+    ${CMAKE_CTEST_COMMAND} -N -R show_only_test)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  if(EXISTS "${marker}")
+    message(FATAL_ERROR "ctest -N executed an ON_DEMAND test")
+  endif()
+endblock()
+
+# Invalid ON_DEMAND selectors are reported as invalid test properties.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-InvalidSelector)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  set(marker "${RunCMake_TEST_BINARY_DIR}/executed")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(invalid_selector_test \"${CMAKE_COMMAND}\" -E touch \"${marker}\")
+set_tests_properties(invalid_selector_test PROPERTIES ON_DEMAND X)
+")
+  set(RunCMake_TEST_EXPECT_RESULT 8)
+  set(RunCMake_TEST_EXPECT_stdout
+    "ON_DEMAND selector \"X\" is not valid. Must be R, L, or I.")
+  set(RunCMake_TEST_EXPECT_stderr "Errors while running CTest")
+  run_cmake_command(OnDemandProperty-InvalidSelector
+    ${CMAKE_CTEST_COMMAND} -V)
+  unset(RunCMake_TEST_EXPECT_RESULT)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  unset(RunCMake_TEST_EXPECT_stderr)
+  if(EXISTS "${marker}")
+    message(FATAL_ERROR "ctest executed a test with an invalid ON_DEMAND selector")
+  endif()
+endblock()
+
+# ON_DEMAND selectors must also be respected when -U combines index and
+# regular-expression selection.  In particular, -I must not activate a test
+# whose property only allows -R.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-UnionIndex)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(auto_test       \"${CMAKE_COMMAND}\" -E true)
+add_test(regex_only_test \"${CMAKE_COMMAND}\" -E true)
+add_test(index_only_test \"${CMAKE_COMMAND}\" -E true)
+set_tests_properties(regex_only_test PROPERTIES ON_DEMAND R)
+set_tests_properties(index_only_test PROPERTIES ON_DEMAND I)
+")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "regex_only_test")
+  run_cmake_command(OnDemandProperty-UnionIndexRegexOnly
+    ${CMAKE_CTEST_COMMAND} -U -I 2,2 --no-tests=ignore)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+  set(RunCMake_TEST_EXPECT_stdout "index_only_test")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "regex_only_test")
+  run_cmake_command(OnDemandProperty-UnionIndexIndexOnly
+    ${CMAKE_CTEST_COMMAND} -U -I 3,3)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+endblock()
+
+# Reassigning ON_DEMAND replaces its previous selector list.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-Reassignment)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(reassigned_test \"${CMAKE_COMMAND}\" -E true)
+set_tests_properties(reassigned_test PROPERTIES ON_DEMAND R LABELS assigned)
+set_tests_properties(reassigned_test PROPERTIES ON_DEMAND L)
+")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "reassigned_test")
+  run_cmake_command(OnDemandProperty-ReassignmentRegex
+    ${CMAKE_CTEST_COMMAND} -R reassigned_test --no-tests=ignore)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+  set(RunCMake_TEST_EXPECT_stdout "reassigned_test")
+  run_cmake_command(OnDemandProperty-ReassignmentLabel
+    ${CMAKE_CTEST_COMMAND} -L assigned)
+  unset(RunCMake_TEST_EXPECT_stdout)
+endblock()
+
+# A selected test still brings in its required fixture setup and cleanup
+# tests, even when those fixture tests have ON_DEMAND selectors that are not
+# activated by the command line.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-Fixtures)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(fixture_setup \"${CMAKE_COMMAND}\" -E echo fixture_setup)
+set_tests_properties(fixture_setup PROPERTIES FIXTURES_SETUP sample_fixture ON_DEMAND L)
+add_test(fixture_test \"${CMAKE_COMMAND}\" -E echo fixture_test)
+set_tests_properties(fixture_test PROPERTIES FIXTURES_REQUIRED sample_fixture)
+add_test(fixture_cleanup \"${CMAKE_COMMAND}\" -E echo fixture_cleanup)
+set_tests_properties(fixture_cleanup PROPERTIES FIXTURES_CLEANUP sample_fixture ON_DEMAND L)
+")
+  set(RunCMake_TEST_EXPECT_stdout
+    "fixture_setup(.|\\n)*fixture_test(.|\\n)*fixture_cleanup")
+  run_cmake_command(OnDemandProperty-Fixtures
+    ${CMAKE_CTEST_COMMAND} -R "^fixture_test$")
+  unset(RunCMake_TEST_EXPECT_stdout)
+endblock()
+
+# --rerun-failed is an explicit request to rerun previously failed tests and
+# must not be blocked by ON_DEMAND.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-RerunFailed)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(rerun_on_demand_test \"${CMAKE_COMMAND}\" -E false)
+set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND R)
+")
+  set(RunCMake_TEST_EXPECT_RESULT 8)
+  set(RunCMake_TEST_EXPECT_stdout "rerun_on_demand_test")
+  set(RunCMake_TEST_EXPECT_stderr "Errors while running CTest")
+  run_cmake_command(OnDemandProperty-RerunInitial
+    ${CMAKE_CTEST_COMMAND} -R rerun_on_demand_test)
+
+  # Change the allowed selector after recording the failed test.  The
+  # --rerun-failed option must still select it.
+  file(APPEND "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake"
+    "set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND L)\n")
+  run_cmake_command(OnDemandProperty-RerunFailed
+    ${CMAKE_CTEST_COMMAND} --rerun-failed)
+  unset(RunCMake_TEST_EXPECT_RESULT)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  unset(RunCMake_TEST_EXPECT_stderr)
+endblock()
