@@ -1513,10 +1513,17 @@ set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND R)
 ")
   set(RunCMake_TEST_EXPECT_RESULT 8)
   set(RunCMake_TEST_EXPECT_stdout "rerun_on_demand_test")
+  set(RunCMake_TEST_EXPECT_stderr "Errors while running CTest")
   run_cmake_command(OnDemandProperty-RerunInitial
     ${CMAKE_CTEST_COMMAND} -R rerun_on_demand_test)
+
+  # Change the allowed selector after recording the failed test.  The
+  # --rerun-failed option must still select it.
+  file(APPEND "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake"
+    "set_tests_properties(rerun_on_demand_test PROPERTIES ON_DEMAND L)\\n")
   run_cmake_command(OnDemandProperty-RerunFailed
     ${CMAKE_CTEST_COMMAND} --rerun-failed)
   unset(RunCMake_TEST_EXPECT_RESULT)
   unset(RunCMake_TEST_EXPECT_stdout)
+  unset(RunCMake_TEST_EXPECT_stderr)
 endblock()
