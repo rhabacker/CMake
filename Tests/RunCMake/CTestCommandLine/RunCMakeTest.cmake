@@ -1426,3 +1426,53 @@ run_on_demand_property_test(RegexExcl  --no-tests=ignore -R manual_test -E manua
 run_on_demand_property_test(Label --no-tests=ignore -L manual)
 run_on_demand_property_test(Index --no-tests=ignore -I 2,2)   # select manual_test by index
 run_on_demand_property_test(Index1 -I 1,1)                    # auto_test only
+
+# ON_DEMAND selectors must also be respected when -U combines index and
+# regular-expression selection.  In particular, -I must not activate a test
+# whose property only allows -R.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-UnionIndex)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(auto_test       \"${CMAKE_COMMAND}\" -E true)
+add_test(regex_only_test \"${CMAKE_COMMAND}\" -E true)
+add_test(index_only_test \"${CMAKE_COMMAND}\" -E true)
+set_tests_properties(regex_only_test PROPERTIES ON_DEMAND R)
+set_tests_properties(index_only_test PROPERTIES ON_DEMAND I)
+")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "regex_only_test")
+  run_cmake_command(OnDemandProperty-UnionIndexRegexOnly
+    ${CMAKE_CTEST_COMMAND} --union -I 2,2 --no-tests=ignore)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+  set(RunCMake_TEST_EXPECT_stdout "index_only_test")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "regex_only_test")
+  run_cmake_command(OnDemandProperty-UnionIndexIndexOnly
+    ${CMAKE_CTEST_COMMAND} --union -I 3,3)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+endblock()
+
+# Reassigning ON_DEMAND replaces its previous selector list.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-Reassignment)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(reassigned_test \"${CMAKE_COMMAND}\" -E true)
+set_tests_properties(reassigned_test PROPERTIES ON_DEMAND R LABELS assigned)
+set_tests_properties(reassigned_test PROPERTIES ON_DEMAND L)
+")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "reassigned_test")
+  run_cmake_command(OnDemandProperty-ReassignmentRegex
+    ${CMAKE_CTEST_COMMAND} -R reassigned_test --no-tests=ignore)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+  set(RunCMake_TEST_EXPECT_stdout "reassigned_test")
+  run_cmake_command(OnDemandProperty-ReassignmentLabel
+    ${CMAKE_CTEST_COMMAND} -L assigned)
+  unset(RunCMake_TEST_EXPECT_stdout)
+endblock()
