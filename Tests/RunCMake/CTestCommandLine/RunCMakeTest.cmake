@@ -1418,14 +1418,77 @@ set_tests_properties(regex_only_test PROPERTIES ON_DEMAND \"R\" LABELS manual)
   set(RunCMake_TEST_NO_CLEAN 1)
   run_cmake_command(OnDemandProperty-${name} ${CMAKE_CTEST_COMMAND} ${ARGN})
 endfunction()
-run_on_demand_property_test(Default)                       # plain ctest
-run_on_demand_property_test(Regex      -R manual_test)     # explicit -R
-run_on_demand_property_test(RegexAll   -R _test)           # -R matching all tests
-run_on_demand_property_test(Exclude    --no-tests=ignore -E auto_test)
-run_on_demand_property_test(RegexExcl  --no-tests=ignore -R manual_test -E manual_test)
-run_on_demand_property_test(Label --no-tests=ignore -L manual)
-run_on_demand_property_test(Index --no-tests=ignore -I 2,2)   # select manual_test by index
-run_on_demand_property_test(Index1 -I 1,1)                    # auto_test only
+set(RunCMake_TEST_EXPECT_stdout "auto_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(Default -V)                       # plain ctest
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "manual_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "auto_test|regex_only_test")
+run_on_demand_property_test(Regex -V -R manual_test)          # explicit -R
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "auto_test|manual_test|regex_only_test")
+run_on_demand_property_test(RegexAll -V -R _test)             # -R matching all tests
+unset(RunCMake_TEST_EXPECT_stdout)
+
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(Exclude -V --no-tests=ignore -E auto_test)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(RegexExcl -V --no-tests=ignore -R manual_test -E manual_test)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "manual_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "auto_test|regex_only_test")
+run_on_demand_property_test(Label -V --no-tests=ignore -L manual)
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "manual_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "auto_test|regex_only_test")
+run_on_demand_property_test(Index -V --no-tests=ignore -I 2,2) # select manual_test by index
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_EXPECT_stdout "auto_test")
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(Index1 -V -I 1,1)                  # auto_test only
+unset(RunCMake_TEST_EXPECT_stdout)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+# Exclusion by label does not activate ON_DEMAND L, but still filters tests
+# selected by another inclusion option.
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test|regex_only_test")
+run_on_demand_property_test(LabelExcludeOnly -V --no-tests=ignore -LE other)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+set(RunCMake_TEST_NOT_EXPECT_stdout "manual_test")
+run_on_demand_property_test(RegexLabelExclude -V --no-tests=ignore -R manual_test -LE manual)
+unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
+# -N lists selected tests without executing them.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-ShowOnly)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  set(marker "${RunCMake_TEST_BINARY_DIR}/executed")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(show_only_test \"${CMAKE_COMMAND}\" -E touch \"${marker}\")
+set_tests_properties(show_only_test PROPERTIES ON_DEMAND R)
+")
+  set(RunCMake_TEST_EXPECT_stdout "show_only_test")
+  run_cmake_command(OnDemandProperty-ShowOnly
+    ${CMAKE_CTEST_COMMAND} -N -R show_only_test)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  if(EXISTS "${marker}")
+    message(FATAL_ERROR "ctest -N executed an ON_DEMAND test")
+  endif()
+endblock()
 
 # ON_DEMAND selectors must also be respected when -U combines index and
 # regular-expression selection.  In particular, -I must not activate a test
