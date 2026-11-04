@@ -2426,6 +2426,16 @@ bool cmCTestTestHandler::SetTestsProperties(
             rt.RawProperties[key] = val;
             rt.OnDemand.clear();
             cmExpandList(val, rt.OnDemand);
+            for (std::string const& selector : rt.OnDemand) {
+              if (selector != "R"_s && selector != "L"_s &&
+                  selector != "I"_s) {
+                rt.AppendError(cmStrCat(
+                  "ON_DEMAND selector \"", selector,
+                  "\" is not valid. Must be R, L, or I."));
+                rt.OnDemand.clear();
+                break;
+              }
+            }
           } else if (key == "ATTACHED_FILES"_s) {
             AppendRawProperty(rt.RawProperties[key], val);
             cmExpandList(val, rt.AttachedFiles);
