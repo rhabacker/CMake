@@ -1481,8 +1481,13 @@ block()
 add_test(show_only_test \"${CMAKE_COMMAND}\" -E touch \"${marker}\")
 set_tests_properties(show_only_test PROPERTIES ON_DEMAND R)
 ")
+  set(RunCMake_TEST_NOT_EXPECT_stdout "show_only_test")
+  run_cmake_command(OnDemandProperty-ShowOnlyDefault
+    ${CMAKE_CTEST_COMMAND} -N)
+  unset(RunCMake_TEST_NOT_EXPECT_stdout)
+
   set(RunCMake_TEST_EXPECT_stdout "show_only_test")
-  run_cmake_command(OnDemandProperty-ShowOnly
+  run_cmake_command(OnDemandProperty-ShowOnlySelected
     ${CMAKE_CTEST_COMMAND} -N -R show_only_test)
   unset(RunCMake_TEST_EXPECT_stdout)
   if(EXISTS "${marker}")
