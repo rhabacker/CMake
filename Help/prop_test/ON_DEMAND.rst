@@ -18,3 +18,7 @@ selection alone.
 
 Exclusion options (``-E`` and ``-LE``) do not activate an ``ON_DEMAND``
 test.  They continue to filter tests selected by an inclusion option.
+
+Only ``R``, ``L``, and ``I`` are valid selectors.  A test with an
+unrecognized selector is reported as having invalid test properties and is
+not run.
