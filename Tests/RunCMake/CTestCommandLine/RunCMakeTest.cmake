@@ -1490,6 +1490,27 @@ set_tests_properties(show_only_test PROPERTIES ON_DEMAND R)
   endif()
 endblock()
 
+# Invalid ON_DEMAND selectors are reported as invalid test properties.
+block()
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/OnDemandProperty-InvalidSelector)
+  set(RunCMake_TEST_NO_CLEAN 1)
+  file(REMOVE_RECURSE "${RunCMake_TEST_BINARY_DIR}")
+  file(MAKE_DIRECTORY "${RunCMake_TEST_BINARY_DIR}")
+  set(marker "${RunCMake_TEST_BINARY_DIR}/executed")
+  file(WRITE "${RunCMake_TEST_BINARY_DIR}/CTestTestfile.cmake" "
+add_test(invalid_selector_test \"${CMAKE_COMMAND}\" -E touch \"${marker}\")
+set_tests_properties(invalid_selector_test PROPERTIES ON_DEMAND X)
+")
+  set(RunCMake_TEST_EXPECT_stdout
+    "ON_DEMAND selector \"X\" is not valid. Must be R, L, or I.")
+  run_cmake_command(OnDemandProperty-InvalidSelector
+    ${CMAKE_CTEST_COMMAND} -V)
+  unset(RunCMake_TEST_EXPECT_stdout)
+  if(EXISTS "${marker}")
+    message(FATAL_ERROR "ctest executed a test with an invalid ON_DEMAND selector")
+  endif()
+endblock()
+
 # ON_DEMAND selectors must also be respected when -U combines index and
 # regular-expression selection.  In particular, -I must not activate a test
 # whose property only allows -R.
